@@ -626,12 +626,18 @@ let dpr=1,O=null,lastT=NaN,intro=-1,lastR=null;const OI={};
 
 function measure(){
   W=innerWidth;H=stage.clientHeight||innerHeight;mob=W<900;
-  dpr=Math.min(devicePixelRatio||1,2.5);lastR=null;cv.width=Math.round(stage.clientWidth*dpr);cv.height=Math.round(H*dpr);lastT=NaN;
   // сколько экранов прокрутки на одну единицу истории
   const unit=mob?H*.5:H*.55;
   len=T*unit;
-  story.style.height=(len+H)+'px';
   top0=story.getBoundingClientRect().top+scrollY;
+  layout();cur=-1;onScroll();
+}
+// геометрия сцены и размер холста. На телефоне высота экрана меняется, когда при прокрутке
+// прячется панель браузера: холст должен совпадать с экраном, иначе картинка вытягивается
+function layout(){
+  H=stage.clientHeight||innerHeight;sW=stage.clientWidth;sH=H;
+  story.style.height=(len+H)+'px';
+  dpr=Math.min(devicePixelRatio||1,2.5);lastR=null;cv.width=Math.round(sW*dpr);cv.height=Math.round(H*dpr);lastT=NaN;
   const hh=mob?60:68;
   if(mob){
     const heroBottom=hh+14+panels[0].offsetHeight;
@@ -651,8 +657,13 @@ function measure(){
   const r=hall.getBoundingClientRect(),sr=stage.getBoundingClientRect();
   const s=Math.max(r.width/IMG.w,r.height/IMG.h),ox=r.left-sr.left+(r.width-IMG.w*s)/2,oy=r.top-sr.top+(r.height-IMG.h*s)/2;
   G.l={cx:ox+IMG.lx*s,cy:oy+IMG.ly*s,rx:IMG.rx*s,ry:IMG.ry*s};
-  tagI=-2;railI=-2;cur=-1;onScroll();
+  tagI=-2;railI=-2;
 }
+let sW=0,sH=0,rsz=0;
+new ResizeObserver(()=>{
+  if(rsz||!G)return;
+  rsz=requestAnimationFrame(()=>{rsz=0;if(stage.clientWidth===sW&&stage.clientHeight===sH)return;layout();onScroll();kick();});
+}).observe(stage);
 
 function render(t){
   const g=ease(seg(t,.2,.95)),A=G.h,B=G.s;
