@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" role="img" aria-label="Логотип Гастротеки: Еда. Люди. Атмосфера. Est. 2026">
+                <circle cx="500" cy="500" r="499" fill="#FBF8F3"/>
+                <circle cx="500" cy="500" r="488.5" fill="none" stroke="#A74431" stroke-width="11.5"/>
+                <path d="M900.8 581.5A409 409 0 0 1 99.2 581.5M99.2 418.5A409 409 0 0 1 900.8 418.5" fill="none" stroke="#A74431" stroke-width="13"/>
+                <image href="img/logo-art.svg?v=1638d3" x="156.4" y="106.4" width="692.3" height="335.9"/>
+                <use href="#wm" transform="translate(73.1 476.9) scale(0.7177 0.705)" color="#1F1B17"/>
+                <text x="500" y="614" text-anchor="middle" font-family="Jost, sans-serif" font-weight="500" font-size="35" fill="#A74431" textLength="630" lengthAdjust="spacing">ЕДА. ЛЮДИ. АТМОСФЕРА</text>
+                <text x="500" y="832" text-anchor="middle" font-family="Jost, sans-serif" font-weight="500" font-size="45" fill="#1F1B17" textLength="215" lengthAdjust="spacing">EST. 2026</text>
+              </svg>
