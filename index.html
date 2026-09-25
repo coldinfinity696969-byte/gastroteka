@@ -225,7 +225,7 @@ button{background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:trans
 .find{position:relative;background:url(img/grain.png?v=13940c),var(--milk);padding-bottom:clamp(76px,9vw,140px)}
 .find__city{--ch:clamp(190px,27vw,400px);position:relative;height:var(--ch);overflow:hidden;overflow:clip;background:#cfe0e3}
 .city{position:absolute;left:50%;top:58%;width:max(100%,calc(var(--ch)*2.5162));aspect-ratio:1170/465;transform:translate(-50%,-58%)}
-.city>*{position:absolute;inset:0;width:100%;height:100%}
+.city>*,.city img{position:absolute;inset:0;width:100%;height:100%}
 .city canvas{opacity:0;transition:opacity 1.2s}
 .city canvas.is-on{opacity:1}
 .city__fx{display:none;pointer-events:none;overflow:visible}
@@ -541,7 +541,10 @@ button{background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:trans
 <section class="find" id="find" aria-labelledby="findTitle">
   <figure class="find__city">
     <div class="city">
-      <img src="img/omsk-city.jpg?v=bc8dc3" width="1170" height="465" loading="lazy" alt="Иллюстрация: Омск, Иртыш, арочный мост, часовня и Тобольские ворота">
+      <picture>
+        <source type="image/webp" srcset="img/omsk-city.webp?v=ee4f0b 1170w, img/omsk-city@2x.webp?v=fb3502 2340w, img/omsk-city@3x.webp?v=9133f9 3510w" sizes="(max-width:478px) 478px, 100vw">
+        <img src="img/omsk-city.jpg?v=1aef33" width="1170" height="465" loading="lazy" alt="Иллюстрация: Омск, Иртыш, арочный мост, часовня и Тобольские ворота">
+      </picture>
       <svg class="city__fx" viewBox="0 0 1170 465" aria-hidden="true" focusable="false">
         <defs><clipPath id="cityDeck"><rect x="432" y="160" width="467" height="25.4"/></clipPath></defs>
         <g clip-path="url(#cityDeck)" stroke="#2B2622" stroke-width=".6" stroke-linejoin="round">
@@ -887,7 +890,7 @@ form.addEventListener('submit',e=>{
   const fig=$('.find__city'),box=$('.city',fig),pic=$('img',box);
   if(RM)return;
   fig.classList.add('is-live');
-  // маски в omsk-city-fx.png: сверху R вода, G небо, B листва; снизу R передний план, G стекло, B теплоход
+  // маски в omsk-city-fx.webp: сверху R вода, G небо, B листва; снизу R передний план, G стекло, B теплоход
   const FS=`precision highp float;
 uniform sampler2D uBase,uPatch,uFx;uniform vec2 uRes;uniform float uT,uSky;uniform vec3 uBoat;
 const vec2 IM=vec2(1170.,465.);const vec4 PR=vec4(445.,297.,785.,408.);
@@ -925,10 +928,10 @@ void main(){
   if(bp.x>470.&&bp.x<776.&&bp.y>305.&&bp.y<390.)c=mix(c,base(bp),fx(bp,IM.y).b*(1.-B.r));
   gl_FragColor=vec4(c,1.);
 }`;
-  let gl=null,cv=null,U={},raf=0,t0=-1,tOff=0,on=false;
+  let gl=null,cv=null,U={},raf=0,t0=-1,tOff=0,on=false,texW=2340,q=1,fN=0,fT=0,fL=0;
   const load=src=>new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=src;});
   function fit(){
-    const w=Math.min(2340,Math.round(box.clientWidth*Math.min(devicePixelRatio||1,2)));
+    const w=Math.min(texW,Math.round(box.clientWidth*(devicePixelRatio||1)*q));
     if(!gl||!w||cv.width===w)return;
     cv.width=w;cv.height=Math.round(w*465/1170);
     gl.viewport(0,0,cv.width,cv.height);gl.uniform2f(U.res,cv.width,cv.height);
@@ -944,18 +947,22 @@ void main(){
     raf=0;if(!on||document.hidden)return;
     if(t0<0)t0=now-tOff*1e3;
     tOff=(now-t0)/1e3;draw(tOff);
+    // слабая видеокарта не успевает: уменьшаем холст
+    if(fL&&q>.5&&++fN>=90){if((now-fT)/fN>24){q*=.75;fit();}fN=0;fT=now;}
+    if(!fL){fL=1;fT=now;}
     raf=requestAnimationFrame(tick);
   }
   function play(){
     fig.classList.toggle('is-run',on&&!document.hidden);
     if(!gl)return;
     if(on&&!document.hidden){if(!raf)raf=requestAnimationFrame(tick);}
-    else{if(raf)cancelAnimationFrame(raf);raf=0;t0=-1;}
+    else{if(raf)cancelAnimationFrame(raf);raf=0;t0=-1;fL=fN=0;}
   }
   function start(imgs){
     cv=document.createElement('canvas');cv.setAttribute('aria-hidden','true');
     const g=cv.getContext('webgl',{alpha:false,antialias:false,depth:false,stencil:false,powerPreference:'low-power'});
-    if(!g)return;
+    if(!g||imgs[0].naturalWidth>g.getParameter(g.MAX_TEXTURE_SIZE))return;
+    texW=imgs[0].naturalWidth;
     const sh=(type,src)=>{const s=g.createShader(type);g.shaderSource(s,src);g.compileShader(s);return s;};
     const pr=g.createProgram();
     g.attachShader(pr,sh(g.VERTEX_SHADER,'attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}'));
@@ -977,14 +984,16 @@ void main(){
     ['res','t','sky','boat'].forEach(n=>U[n]=g.getUniformLocation(pr,'u'+n[0].toUpperCase()+n.slice(1)));
     gl=g;
     cv.addEventListener('webglcontextlost',()=>{cv.classList.remove('is-on');if(raf)cancelAnimationFrame(raf);raf=0;gl=null;});
-    pic.after(cv);
+    (pic.closest('picture')||pic).after(cv);
     fit();new ResizeObserver(fit).observe(box);
     draw(tOff);requestAnimationFrame(()=>cv.classList.add('is-on'));
     play();
   }
   new IntersectionObserver((es,o)=>{
     if(!es[0].isIntersecting)return;o.disconnect();
-    Promise.all([pic.currentSrc||pic.src,'img/omsk-city-patch.jpg?v=ecac7b','img/omsk-city-fx.png?v=25b90c'].map(load)).then(start,()=>{});
+    // картинку берём ту, что браузер выбрал под экран
+    (pic.complete&&pic.naturalWidth?Promise.resolve():new Promise((ok,no)=>{pic.addEventListener('load',ok,{once:true});pic.addEventListener('error',no,{once:true});}))
+      .then(()=>Promise.all([pic.currentSrc||pic.src,'img/omsk-city-patch.webp?v=99a294','img/omsk-city-fx.webp?v=9b6723'].map(load))).then(start,()=>{});
   },{rootMargin:'500px 0px'}).observe(fig);
   new IntersectionObserver(es=>{on=es[es.length-1].isIntersecting;play();}).observe(fig);
   document.addEventListener('visibilitychange',play);
